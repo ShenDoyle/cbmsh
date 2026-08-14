@@ -15,6 +15,8 @@
 | `backup.sh` | 系统盘镜像备份/恢复 | 是（菜单） | 是 |
 | `nezha.sh` | 哪吒监控面板管理 | 是（菜单/子命令） | 是 |
 
+> 每个脚本都用各自的一条命令直接执行（不再用 `&&` 把多个脚本串在一起）；`backup.sh` 与 `nezha.sh` 为交互式，需人工在菜单里选择。
+
 ---
 
 ## 1. system_info.sh — 系统信息收集与诊断
@@ -27,12 +29,12 @@ SSH/安全、内核参数与 ulimit，以及 **Docker 容器/镜像/网络/卷**
 （MySQL/MariaDB、PostgreSQL、Redis、MongoDB）。报告末尾还会给出磁盘/内存/负载/端口/容器的
 优化建议（如磁盘使用率 >85%、连接数 >100 会给出警告）。
 
-**使用命令**
+**直接执行命令**
 ```bash
 # 不指定路径：报告默认保存到 system_info_YYYYMMDD_HHMMSS.txt
 sudo ./system_info.sh
 
-# 指定报告输出路径
+# 或指定报告输出路径
 sudo ./system_info.sh /root/diag_$(date +%F).txt
 ```
 - 脚本使用 `set -euo pipefail`，失败的单条命令会被安全跳过并提示，不会中断整体收集。
@@ -47,7 +49,7 @@ sudo ./system_info.sh /root/diag_$(date +%F).txt
 一键把整块系统盘做成 `.img.gz` 压缩镜像（方便存放到本地或远程），或把镜像写回系统盘完成恢复。
 自动检测系统盘设备名（避免误写其他盘），`dd` 带 `status=progress` 进度条。
 
-**使用命令**
+**直接执行命令**
 ```bash
 sudo ./backup.sh
 ```
@@ -69,12 +71,12 @@ sudo ./backup.sh
 [nezhahq](https://github.com/nezhahq/nezha) 脚本封装）。支持 **Docker** 与 **独立安装** 两种方式，
 自动识别架构、init 系统（systemd/openrc）与国内外镜像源（含自定义镜像）。
 
-**使用命令**
+**直接执行命令（仓库内脚本）**
 ```bash
-# 显示交互菜单（安装方式、语言、站点标题等均可在此选择）
-sudo ./nezha.sh
-
-# 直接以子命令方式执行（适合脚本化/自动化）
+sudo ./nezha.sh                  # 显示交互菜单（安装方式、语言、站点标题等在此选择）
+```
+常用子命令（适合脚本化/自动化，直接用一行执行）：
+```bash
 sudo ./nezha.sh install            # 安装面板端
 sudo ./nezha.sh modify_config      # 修改面板配置
 sudo ./nezha.sh restart_and_update # 重启并更新面板
@@ -85,14 +87,14 @@ sudo ./nezha.sh update_script      # 更新本管理脚本
 - 首次运行菜单会提示选择安装方式（Docker / 独立）及是否使用中国镜像。
 - 安装后默认访问地址为 `域名:站点访问端口`（端口默认 8008，安装时可改）。
 
----
-
-## 一键执行（赋权 + 跑诊断）
-
-把三个脚本都设为可执行，并立即跑一次非交互的系统诊断：
+### 静态加速代理外链一键安装（仓库不存安装文件）
+哪吒官方安装脚本通过**静态加速代理**拉取，运行时从代理下载到本地执行；仓库只保留 `nezha.sh` 管理脚本本身，**不附带任何下载得到的安装/配置文件**（脚本内部改配置、更新时也会自动从 `raw.githubusercontent.com` / `gitee.com` / `jsdelivr` 等外链拉取）。
 
 ```bash
-chmod +x system_info.sh backup.sh nezha.sh && sudo ./system_info.sh diag_$(date +%F).txt && echo "✅ 系统诊断报告已生成" && echo "ℹ️ backup.sh 与 nezha.sh 为交互式脚本，请单独运行（勿直接接在 && 后，以免阻塞等待输入）"
-```
+# 方式 A：GitHub 原始地址 + 静态加速代理（国内推荐）
+curl -sL https://ghproxy.net/https://raw.githubusercontent.com/nezhahq/scripts/main/install.sh -o nezha.sh && chmod +x nezha.sh && sudo ./nezha.sh
 
-> 说明：`backup.sh` 与 `nezha.sh` 都需要人工在菜单中选择操作，无法在无输入的情况下接在 `&&` 链中安全执行；如需备份或装面板，请单独运行上面各自的命令。
+# 方式 B：jsDelivr 静态加速（CDN）
+curl -sL https://cdn.jsdelivr.net/gh/nezhahq/scripts@main/install.sh -o nezha.sh && chmod +x nezha.sh && sudo ./nezha.sh
+```
+> 说明：以上命令在运行时从静态加速代理下载 `install.sh` 到当前目录并执行，整个过程不向本仓库写入任何外部文件。
